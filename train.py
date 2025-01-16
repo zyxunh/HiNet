@@ -9,7 +9,7 @@ import config as c
 from tensorboardX import SummaryWriter
 import datasets
 import viz
-import modules.Unet_common as common
+import hi_modules.Unet_common as common
 import warnings
 
 warnings.filterwarnings("ignore")

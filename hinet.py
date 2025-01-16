@@ -1,3 +1,5 @@
+from unhcv.common.utils.global_item import GLOBAL_ITEM
+
 from model import *
 from invblock import INV_block
 
@@ -27,6 +29,7 @@ class Hinet(nn.Module):
 
     def forward(self, x, rev=False):
 
+        GLOBAL_ITEM.outs = []
         if not rev:
             out = self.inv1(x)
             out = self.inv2(out)

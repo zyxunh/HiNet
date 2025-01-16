@@ -5,18 +5,29 @@ from hinet import Hinet
 
 
 class Model(nn.Module):
-    def __init__(self):
+    def __init__(self, config):
         super(Model, self).__init__()
 
-        self.model = Hinet()
+        self.inv_on = getattr(config, 'inv_on', True)
+        if self.inv_on:
+            self.model = Hinet()
+        else:
+            self.model1 = Hinet()
+            self.model2 = Hinet()
 
     def forward(self, x, rev=False):
 
-        if not rev:
-            out = self.model(x)
+        if self.inv_on:
+            if not rev:
+                out = self.model(x)
 
+            else:
+                out = self.model(x, rev=True)
         else:
-            out = self.model(x, rev=True)
+            if not rev:
+                out = self.model1(x)
+            else:
+                out = self.model2(x, rev=True)
 
         return out
 

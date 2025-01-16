@@ -1,15 +1,23 @@
 #!/usr/bin/env python
+from importlib import import_module
+
 import torch
 import torch.nn
 import torch.optim
 import math
 import numpy as np
+from torch.nn.utils import clip_grad_norm
+from unhcv.common.utils import attach_home_root
+
 from model import *
-import config as c
+import sys
+# eval("import configs." + sys.argv[1] + " as c")
+c = import_module("configs." + sys.argv[1])
+# import config as c
 from tensorboardX import SummaryWriter
 import datasets
 import viz
-import modules.Unet_common as common
+import hi_modules.Unet_common as common
 import warnings
 import logging
 import util
@@ -74,7 +82,13 @@ def load(name):
 #####################
 # Model initialize: #
 #####################
-net = Model()
+model_name = getattr(c, "model_name", "Hinet")
+if model_name == "Hinet":
+    net = Model(config=c)
+elif model_name == "HiNetUnet":
+    from unet_hinet import HiNetUnet
+    model_config = getattr(c, "model_config", {})
+    net = HiNetUnet((256, 512, 1024, 1024), (3,) * 4, model_config=model_config)
 net.cuda()
 init_model(net)
 net = torch.nn.DataParallel(net, device_ids=c.device_ids)
@@ -93,7 +107,8 @@ if c.tain_next:
 
 optim = torch.optim.Adam(params_trainable, lr=c.lr, betas=c.betas, eps=1e-6, weight_decay=c.weight_decay)
 
-util.setup_logger('train', '/home/jjp/HiNet-main2/', 'train_', level=logging.INFO, screen=True, tofile=True)
+root = attach_home_root("train_outputs/checkpoint/hinet/baseline")
+util.setup_logger('train', root, 'train_', level=logging.INFO, screen=True, tofile=True)
 logger_train = logging.getLogger('train')
 logger_train.info(net)
 
@@ -150,6 +165,7 @@ try:
 
             total_loss = c.lamda_reconstruction * r_loss + c.lamda_guide * g_loss + c.lamda_low_frequency * l_loss
             total_loss.backward()
+            grad = clip_grad_norm(net.parameters(), 1)
             optim.step()
             optim.zero_grad()
 
@@ -238,7 +254,7 @@ try:
         weight_scheduler.step()
 
     torch.save({'opt': optim.state_dict(),
-                'net': net.state_dict()}, c.MODEL_PATH + 'model' + '.pt')
+                'net': net.state_dict()}, c.MODEL_PATH + 'model_training' + '.pt')
     writer.close()
 
 except:
